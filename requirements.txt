@@ -1,0 +1,29 @@
+# Core ML & LLM
+torch>=2.1.0,<2.3.0
+transformers>=4.36.0,<4.42.0
+accelerate>=0.25.0,<0.31.0
+
+# Data handling & analytics
+pandas>=2.1.0,<2.3.0
+numpy>=1.24.0,<2.0.0
+
+# System & resource monitoring
+psutil>=5.9.0,<6.0.0
+pynvml>=11.5.0,<12.0.0
+
+# CLI & UX
+tqdm>=4.66.0,<5.0.0
+pyyaml>=6.0.1,<7.0.0
+
+# Visualization
+matplotlib>=3.7.0,<3.9.0
+plotly>=5.18.0,<6.0.0
+
+# Validation & schema
+jsonschema>=4.19.0,<5.0.0
+
+# Logging & utilities
+rich>=13.7.0,<14.0.0
+
+# Testing (CI)
+pytest>=7.4.0,<9.0.0
