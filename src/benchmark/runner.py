@@ -1,4 +1,6 @@
+from pathlib import Path
 from typing import List, Dict, Any
+
 from tqdm import tqdm
 
 from benchmark.dataset import load_dataset
@@ -6,17 +8,16 @@ from benchmark.models import HuggingFaceModel
 from benchmark.monitor import ResourceMonitor
 from benchmark.metrics import measure_latency, aggregate_metrics
 from benchmark.environment import get_environment_metadata
-from benchmark.exceptions import (
-    BenchmarkError,
-    InferenceError,
-    ModelLoadError,
+from benchmark.reporter import (
+    save_results_csv,
+    plot_average_latency,
+    plot_peak_memory,
+    print_summary,
 )
+from benchmark.exceptions import ModelLoadError, InferenceError
 
 
 def run_benchmark(config: dict) -> None:
-    """
-    Main benchmark orchestration function.
-    """
     print("[INFO] Initializing benchmark run")
 
     # Load dataset
@@ -30,13 +31,13 @@ def run_benchmark(config: dict) -> None:
 
     print(f"[INFO] Loaded {len(prompts)} prompts")
 
-    # Collect environment metadata
-    environment = get_environment_metadata()
+    # Environment metadata
+    env = get_environment_metadata()
+    print(f"[INFO] Environment: {env['python_version']} | CPU cores: {env['cpu_cores']}")
 
-    # Prepare result container
-    all_results: List[Dict[str, Any]] = []
+    results: List[Dict[str, Any]] = []
 
-    # Loop over models
+    # Model loop
     for model_cfg in config["models"]:
         model_id = model_cfg["id"]
         model_name = model_cfg["name"]
@@ -49,15 +50,11 @@ def run_benchmark(config: dict) -> None:
                 device=config["runtime"]["device"],
                 dtype=model_cfg["dtype"],
             )
-        except ModelLoadError as exc:
-            print(f"[ERROR] {exc}")
+        except ModelLoadError as e:
+            print(f"[ERROR] Model load failed: {e}")
             continue
 
-        # Loop over prompts
-        for record in tqdm(prompts, desc=f"Running {model_name}"):
-            prompt_id = record["id"]
-            prompt_text = record["prompt"]
-
+        for prompt in tqdm(prompts, desc=f"Running {model_name}"):
             monitor = ResourceMonitor(
                 monitor_gpu=(config["runtime"]["device"] == "cuda")
             )
@@ -67,12 +64,12 @@ def run_benchmark(config: dict) -> None:
 
                 latency, (output_text, output_tokens) = measure_latency(
                     model.generate,
-                    prompt_text,
+                    prompt["prompt"],
                     config["generation"],
                 )
 
                 monitor.sample()
-                resource_metrics = monitor.stop()
+                mem = monitor.stop()
 
                 metrics = aggregate_metrics(
                     latency=latency,
@@ -80,29 +77,38 @@ def run_benchmark(config: dict) -> None:
                     output_text=output_text,
                 )
 
-                result = {
+                results.append({
                     "model_id": model_id,
                     "model_name": model_name,
-                    "prompt_id": prompt_id,
-                    "latency_sec": metrics["latency_sec"],
-                    "tokens_per_sec": metrics["tokens_per_sec"],
-                    "output_length": metrics["output_length"],
-                    "vocab_diversity": metrics["vocab_diversity"],
-                    "peak_ram_mb": resource_metrics["peak_ram_mb"],
-                    "peak_gpu_mb": resource_metrics["peak_gpu_mb"],
-                }
+                    "prompt_id": prompt["id"],
+                    **metrics,
+                    "peak_ram_mb": mem["peak_ram_mb"],
+                    "peak_gpu_mb": mem["peak_gpu_mb"],
+                })
 
-                all_results.append(result)
-
-            except InferenceError as exc:
-                print(f"[WARN] Inference failed for model {model_name}: {exc}")
+            except InferenceError as e:
+                print(f"[WARN] Inference failed: {e}")
 
             finally:
                 monitor.cleanup()
 
-    # Final reporting (placeholder)
-    print("\n[INFO] Benchmark run completed")
-    print(f"[INFO] Total successful runs: {len(all_results)}")
+    # HARD ASSERT (IMPORTANT)
+    if not results:
+        raise RuntimeError(
+            "Benchmark completed but NO RESULTS were collected. "
+            "Check model loading or inference."
+        )
 
-    # NOTE:
-    # Saving results + plots handled in reporter.py (Step 17)
+    # Reporting
+    output_dir = Path(config["output"]["base_dir"]) / "latest"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = save_results_csv(results, output_dir)
+    latency_plot = plot_average_latency(results, output_dir)
+    memory_plot = plot_peak_memory(results, output_dir)
+
+    print_summary(results)
+
+    print("\n[INFO] Benchmark completed successfully")
+    print(f"[INFO] CSV saved at: {csv_path}")
+    print(f"[INFO] Plots saved at: {output_dir}")
