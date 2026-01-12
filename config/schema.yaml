@@ -1,0 +1,127 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+type: object
+required:
+  - benchmark
+  - models
+  - dataset
+  - generation
+  - runtime
+  - output
+
+properties:
+  benchmark:
+    type: object
+    required:
+      - name
+      - runs_per_prompt
+      - seed
+    properties:
+      name:
+        type: string
+      runs_per_prompt:
+        type: integer
+        minimum: 1
+      seed:
+        type: integer
+
+  models:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - id
+        - name
+        - provider
+        - size
+        - dtype
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          type: string
+          enum: ["huggingface"]
+        size:
+          type: string
+          enum: ["<1B", "~7B", ">13B"]
+        dtype:
+          type: string
+          enum: ["float32", "float16"]
+
+  dataset:
+    type: object
+    required:
+      - path
+      - format
+      - text_field
+    properties:
+      path:
+        type: string
+      format:
+        type: string
+        enum: ["csv", "jsonl"]
+      text_field:
+        type: string
+      max_prompts:
+        type: integer
+        minimum: 1
+
+  generation:
+    type: object
+    required:
+      - max_new_tokens
+      - temperature
+      - top_p
+      - do_sample
+    properties:
+      max_new_tokens:
+        type: integer
+        minimum: 1
+      temperature:
+        type: number
+        minimum: 0.0
+      top_p:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+      do_sample:
+        type: boolean
+
+  runtime:
+    type: object
+    required:
+      - device
+      - batch_size
+      - timeout_seconds
+    properties:
+      device:
+        type: string
+        enum: ["cpu", "cuda"]
+      use_gpu_if_available:
+        type: boolean
+      batch_size:
+        type: integer
+        minimum: 1
+      timeout_seconds:
+        type: integer
+        minimum: 1
+
+  output:
+    type: object
+    required:
+      - base_dir
+      - save_raw_outputs
+      - save_plots
+      - log_level
+    properties:
+      base_dir:
+        type: string
+      save_raw_outputs:
+        type: boolean
+      save_plots:
+        type: boolean
+      log_level:
+        type: string
+        enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
