@@ -1,0 +1,6 @@
+model_id,model_name,prompt_id,latency_sec,tokens_per_sec,output_length,vocab_diversity,peak_ram_mb,peak_gpu_mb
+distilgpt2,DistilGPT-2 (Small),0,2.81,68.90,127,0.72,642.50,
+distilgpt2,DistilGPT-2 (Small),1,2.75,70.12,128,0.74,645.10,
+distilgpt2,DistilGPT-2 (Small),2,2.92,67.85,125,0.70,646.00,
+distilgpt2,DistilGPT-2 (Small),3,2.79,69.55,130,0.73,643.80,
+distilgpt2,DistilGPT-2 (Small),4,2.83,68.40,126,0.71,644.20,
