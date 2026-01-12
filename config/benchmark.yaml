@@ -1,0 +1,55 @@
+# LLM Performance Benchmark Configuration
+
+benchmark:
+  name: "llm_performance_benchmark"
+  runs_per_prompt: 1
+  seed: 42
+
+# Model definitions (Hugging Face Hub)
+# Must include at least 3 models of different sizes
+models:
+  - id: "distilgpt2"
+    name: "DistilGPT-2 (Small)"
+    provider: "huggingface"
+    size: "<1B"
+    dtype: "float32"
+
+  - id: "mistralai/Mistral-7B-v0.1"
+    name: "Mistral 7B (Medium)"
+    provider: "huggingface"
+    size: "~7B"
+    dtype: "float16"
+
+  - id: "meta-llama/Llama-2-13b-hf"
+    name: "LLaMA 2 13B (Large)"
+    provider: "huggingface"
+    size: ">13B"
+    dtype: "float16"
+
+# Dataset configuration
+dataset:
+  path: "config/prompts.jsonl"
+  format: "jsonl"
+  text_field: "prompt"
+  max_prompts: 10
+
+# Text generation parameters
+generation:
+  max_new_tokens: 128
+  temperature: 0.7
+  top_p: 0.9
+  do_sample: true
+
+# Runtime / device configuration
+runtime:
+  device: "cpu" # cpu or cuda
+  use_gpu_if_available: false
+  batch_size: 1
+  timeout_seconds: 60
+
+# Output configuration
+output:
+  base_dir: "outputs"
+  save_raw_outputs: true
+  save_plots: true
+  log_level: "INFO"
