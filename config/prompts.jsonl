@@ -1,0 +1,10 @@
+{"id": 1, "prompt": "Explain the concept of machine learning in simple terms."}
+{"id": 2, "prompt": "Summarize the importance of data preprocessing in machine learning."}
+{"id": 3, "prompt": "What is the difference between supervised and unsupervised learning?"}
+{"id": 4, "prompt": "Write a short paragraph about the role of evaluation metrics in model selection."}
+{"id": 5, "prompt": "Explain overfitting and underfitting with a simple example."}
+{"id": 6, "prompt": "What are the advantages of using deep learning over traditional machine learning methods?"}
+{"id": 7, "prompt": "Describe a real-world application of natural language processing."}
+{"id": 8, "prompt": "What is transfer learning and why is it useful in deep learning?"}
+{"id": 9, "prompt": "Explain the concept of model inference latency in AI systems."}
+{"id": 10, "prompt": "Why is benchmarking important when deploying large language models in production?"}
