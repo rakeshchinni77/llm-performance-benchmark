@@ -1,6 +1,10 @@
 from pathlib import Path
 from typing import List, Dict, Any
+from datetime import datetime
+import json
+import logging
 
+import pandas as pd
 from tqdm import tqdm
 
 from benchmark.dataset import load_dataset
@@ -18,7 +22,17 @@ from benchmark.exceptions import ModelLoadError, InferenceError
 
 
 def run_benchmark(config: dict) -> None:
-    print("[INFO] Initializing benchmark run")
+    logging.info("Initializing benchmark run")
+
+    # Output directories (timestamped + latest)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+    base_dir = Path(config["output"]["base_dir"])
+
+    output_dir = base_dir / timestamp
+    latest_dir = base_dir / "latest"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    latest_dir.mkdir(parents=True, exist_ok=True)
 
     # Load dataset
     dataset_cfg = config["dataset"]
@@ -29,11 +43,19 @@ def run_benchmark(config: dict) -> None:
         max_prompts=dataset_cfg.get("max_prompts"),
     )
 
-    print(f"[INFO] Loaded {len(prompts)} prompts")
+    logging.info(f"Loaded {len(prompts)} prompts")
 
     # Environment metadata
     env = get_environment_metadata()
-    print(f"[INFO] Environment: {env['python_version']} | CPU cores: {env['cpu_cores']}")
+    logging.info(
+        f"Environment: Python {env['python_version']} | CPU cores: {env['cpu_cores']}"
+    )
+
+    env_path = output_dir / "environment.json"
+    with open(env_path, "w", encoding="utf-8") as f:
+        json.dump(env, f, indent=2)
+
+    logging.info(f"Environment metadata saved to {env_path}")
 
     results: List[Dict[str, Any]] = []
 
@@ -42,7 +64,7 @@ def run_benchmark(config: dict) -> None:
         model_id = model_cfg["id"]
         model_name = model_cfg["name"]
 
-        print(f"\n[INFO] Loading model: {model_name}")
+        logging.info(f"Loading model: {model_name}")
 
         try:
             model = HuggingFaceModel(
@@ -50,8 +72,8 @@ def run_benchmark(config: dict) -> None:
                 device=config["runtime"]["device"],
                 dtype=model_cfg["dtype"],
             )
-        except ModelLoadError as e:
-            print(f"[ERROR] Model load failed: {e}")
+        except ModelLoadError as exc:
+            logging.error(f"Model load failed: {exc}")
             continue
 
         for prompt in tqdm(prompts, desc=f"Running {model_name}"):
@@ -86,29 +108,57 @@ def run_benchmark(config: dict) -> None:
                     "peak_gpu_mb": mem["peak_gpu_mb"],
                 })
 
-            except InferenceError as e:
-                print(f"[WARN] Inference failed: {e}")
+            except InferenceError as exc:
+                logging.warning(f"Inference failed: {exc}")
 
             finally:
                 monitor.cleanup()
 
-    # HARD ASSERT (IMPORTANT)
+    # Safety check
     if not results:
         raise RuntimeError(
             "Benchmark completed but NO RESULTS were collected. "
             "Check model loading or inference."
         )
 
-    # Reporting
-    output_dir = Path(config["output"]["base_dir"]) / "latest"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
+    # Reporting (CSV + plots)
     csv_path = save_results_csv(results, output_dir)
-    latency_plot = plot_average_latency(results, output_dir)
-    memory_plot = plot_peak_memory(results, output_dir)
+    plot_average_latency(results, output_dir)
+    plot_peak_memory(results, output_dir)
 
     print_summary(results)
 
-    print("\n[INFO] Benchmark completed successfully")
-    print(f"[INFO] CSV saved at: {csv_path}")
-    print(f"[INFO] Plots saved at: {output_dir}")
+    logging.info(f"Results CSV saved at {csv_path}")
+
+    # Summary markdown
+    summary_path = output_dir / "summary.md"
+
+    df = pd.DataFrame(results)
+    summary_df = df.groupby("model_name")[[
+        "latency_sec",
+        "tokens_per_sec",
+        "peak_ram_mb"
+    ]].mean().round(3)
+
+    with open(summary_path, "w", encoding="utf-8") as f:
+        f.write("# Benchmark Summary\n\n")
+        f.write(f"- Models tested: {df['model_name'].nunique()}\n")
+        f.write(f"- Total runs: {len(df)}\n\n")
+        f.write("## Average Metrics per Model\n\n")
+        f.write(summary_df.to_markdown())
+
+    logging.info(f"Summary report saved to {summary_path}")
+
+    # Update latest/ directory
+    for item in latest_dir.iterdir():
+        if item.is_file():
+            item.unlink()
+
+    for file in output_dir.iterdir():
+        if file.is_file():
+            target = latest_dir / file.name
+            target.write_bytes(file.read_bytes())
+
+    logging.info("Updated outputs/latest with most recent run")
+
+    logging.info("Benchmark completed successfully")

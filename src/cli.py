@@ -1,12 +1,11 @@
 import argparse
 import sys
-import yaml
 from pathlib import Path
+
+import yaml
 from jsonschema import validate, ValidationError
 
-# NOTE:
-# runner will be implemented in Step 16
-# We import lazily to avoid early failures
+from benchmark.logging_utils import setup_logging
 
 
 def load_yaml(path: Path) -> dict:
@@ -62,13 +61,24 @@ def main():
             print(f"[ERROR] {exc}", file=sys.stderr)
             sys.exit(1)
 
+        # Initialize logging BEFORE benchmark starts
+        log_dir = Path(config["output"]["base_dir"]) / "logs"
+        setup_logging(
+            log_dir=log_dir,
+            level=config["output"].get("log_level", "INFO"),
+        )
+
         print("[INFO] Configuration loaded and validated successfully.")
         print("[INFO] Starting LLM benchmarking process...")
 
-        # Import runner lazily (implemented later)
+        # Lazy import to avoid startup failures
         from benchmark.runner import run_benchmark  # noqa: E402
 
         run_benchmark(config)
 
     else:
         raise RuntimeError("Unknown command")
+
+
+if __name__ == "__main__":
+    main()
