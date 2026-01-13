@@ -1,29 +1,29 @@
 # LLM Performance Benchmarking Tool
 
-A production-quality, configuration-driven **command-line benchmarking tool** to evaluate and compare the performance of Large Language Models (LLMs).
+A **production-quality, configuration-driven command-line benchmarking tool** for evaluating and comparing the performance of Large Language Models (LLMs).
 
-This project is built to help engineers and ML practitioners make **informed model selection decisions** by analyzing trade-offs between **latency, throughput, memory usage, and output quality** before deploying models to production.
+This project helps engineers and ML practitioners make **informed model selection decisions** by systematically analyzing trade-offs between **latency, throughput, memory usage, and basic output quality** before deploying models to production.
 
 ---
 
 ## Project Objective
 
-Selecting the right LLM for production is not only about output quality. Real-world systems must balance:
+Selecting the right LLM for production is **not only about output quality**. Real-world systems must balance:
 
-- Inference speed  
-- Hardware resource usage  
-- Scalability constraints  
-- Cost and deployment feasibility  
+- Inference latency
+- Hardware resource usage (CPU / GPU / RAM)
+- Scalability constraints
+- Deployment cost and feasibility
 
-This tool provides a **systematic and reproducible way** to benchmark multiple LLMs and generate **clear, actionable performance reports**.
+This tool provides a **systematic, reproducible, and automated way** to benchmark multiple LLMs and generate **clear, actionable performance reports**.
 
 ---
 
 ## Key Features
 
-- Command-line interface (CLI)
-- Supports multiple Hugging Face LLMs
-- Configuration-driven (YAML)
+- Installable CLI tool (`llm-bench`)
+- Supports Hugging Face LLMs
+- Fully configuration-driven (YAML-based)
 - Measures:
   - Inference latency
   - Tokens per second (throughput)
@@ -34,20 +34,22 @@ This tool provides a **systematic and reproducible way** to benchmark multiple L
   - Vocabulary diversity
 - CSV result export
 - Performance visualizations (PNG)
-- Robust error handling (model failures don’t crash runs)
-- Fully tested with PyTest
-- CI pipeline using GitHub Actions
+- Timestamped benchmark runs with `latest/` pointer
+- Robust error handling (partial failures do not crash runs)
+- Environment metadata capture (OS, Python version, hardware)
+- Fully tested using PyTest
+- CI pipeline via GitHub Actions
 
 ---
 
 ## What This Tool Benchmarks
 
-For each model and prompt, the tool records:
+For each model and prompt, the following metrics are recorded:
 
-| Category | Metrics |
-|--------|--------|
-| Performance | Latency (seconds), Tokens/sec |
-| Memory | Peak RAM, Peak GPU memory |
+| Category        | Metrics                             |
+| --------------- | ----------------------------------- |
+| Performance     | Latency (seconds), Tokens/sec       |
+| Memory          | Peak RAM (MB), Peak GPU memory (MB) |
 | Quality (basic) | Output length, Vocabulary diversity |
 
 ---
@@ -55,46 +57,51 @@ For each model and prompt, the tool records:
 ## Project Structure
 
 ```
+## Project Structure
+
 llm-performance-benchmark/
 ├── README.md
 ├── requirements.txt
 ├── setup.py
 ├── pyproject.toml
 │
-├── .github/
-│ └── workflows/
-│ └── ci.yml
+├── .github/workflows/
+│   └── ci.yml
 │
 ├── config/
-│ ├── benchmark.yaml
-│ ├── prompts.jsonl
-│ └── schema.yaml
+│   ├── benchmark.yaml        # Model, dataset, and benchmark configuration
+│   ├── prompts.jsonl         # Benchmark prompts
+│   └── schema.yaml           # Config validation schema
 │
 ├── src/
-│ ├── cli.py
-│ └── benchmark/
-│ ├── runner.py
-│ ├── models.py
-│ ├── metrics.py
-│ ├── monitor.py
-│ ├── reporter.py
-│ ├── environment.py
-│ └── exceptions.py
+│   ├── cli.py                # CLI entry point
+│   └── benchmark/
+│       ├── runner.py         # Benchmark orchestration logic
+│       ├── models.py         # Model loading and inference wrappers
+│       ├── metrics.py        # Performance and quality metrics
+│       ├── monitor.py        # RAM / GPU monitoring
+│       ├── reporter.py       # CSV + visualization generation
+│       ├── environment.py    # System metadata capture
+│       ├── logging_utils.py  # Structured logging utilities
+│       └── exceptions.py     # Custom exception handling
 │
 ├── tests/
-│ ├── test_cli.py
-│ ├── test_metrics.py
-│ ├── test_monitor.py
-│ └── test_runner.py
+│   ├── test_cli.py
+│   ├── test_metrics.py
+│   ├── test_monitor.py
+│   └── test_runner.py
 │
-├── outputs/
-│ └── latest/
-│ ├── results.csv
-│ ├── latency_comparison.png
-│ └── memory_comparison.png
+├── outputs/                  # gitignored (runtime artifacts)
+│   ├── <timestamp>/
+│   └── latest/
 │
 └── docs/
-└── benchmark_report.md
+    ├── benchmark_report.md
+    ├── design_decisions.md
+    ├── sample_results.csv
+    ├── latency_comparison.png
+    └── memory_comparison.png
+
 ```
 
 ---
@@ -108,24 +115,33 @@ git clone https://github.com/rakeshchinni77/llm-performance-benchmark.git
 cd llm-performance-benchmark
 
 ```
+
 ### 2️.Create and activate virtual environment
+
 ```bash
 python -m venv .venv
 
 ```
+
 Windows
+
 ```bash
 .venv\Scripts\Activate.ps1
 ```
+
 Linux / macOS
+
 ```bash
 source .venv/bin/activate
 ```
+
 ### 3️.Install dependencies
+
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
+
 ---
 
 ## How to Run the Benchmark
@@ -137,132 +153,137 @@ The tool is executed via the CLI and controlled using a YAML configuration file.
 python -m src.cli run --config config/benchmark.yaml
 
 ```
+
 ---
 
-## Configuration Overview (benchmark.yaml)
+## Configuration Overview (`benchmark.yaml`)
 
 The configuration file defines:
 
-Models to benchmark
+- Models to benchmark
+- Prompt dataset
+- Text generation parameters
+- Runtime device (CPU / GPU)
+- Output and logging behavior
 
-Dataset location
+### Example (simplified)
 
-Generation parameters
-
-Runtime device (CPU / GPU)
-
-Output settings
-
-Example (simplified):
-
-```
 models:
-  - id: "distilgpt2"
-    name: "DistilGPT-2 (Small)"
-    provider: "huggingface"
-    size: "<1B"
-    dtype: "float32"
+
+- id: "distilgpt2"
+  name: "DistilGPT-2 (Small)"
+  provider: "huggingface"
+  size: "<1B"
+  dtype: "float32"
 
 dataset:
-  path: "config/prompts.jsonl"
-  format: "jsonl"
-  text_field: "prompt"
+path: "config/prompts.jsonl"
+format: "jsonl"
+text_field: "prompt"
 
 runtime:
-  device: "cpu"
+device: "cpu"
 
-```
-The configuration is validated using a JSON schema before execution.
+The configuration is validated against a **JSON schema** before execution to prevent runtime errors.
 
 ---
 
 ## Output Artifacts
 
-After execution, results are saved in:
+Each benchmark run produces a timestamped directory:
 
-```bash
+outputs/<YYYY-MM-DD_HHMM>/
+
+A convenience pointer is also maintained:
 
 outputs/latest/
 
-```
+### Generated Artifacts
+
+- results.csv
+- latency_comparison.png
+- memory_comparison.png
+- environment.json
+- summary.md
+- logs/benchmark.log
+
+**Note:** `outputs/` is gitignored.  
+Sample artifacts are copied into `docs/` for review.
 
 ---
 
-## Visualizations
+## Sample Visualizations
 
-Latency Comparison
-Helps identify fast vs slow models
+The following charts were generated from a real benchmark run and are included
+in the `docs/` directory for reviewer inspection.
 
-Memory Usage Comparison
-Highlights hardware feasibility
+### 🔹 Average Inference Latency per Model
+This chart compares the average end-to-end inference latency across models.
 
-These charts allow quick comparison for production decision-making.
+![Latency Comparison](docs/latency_comparison.png)
+
+---
+
+### 🔹 Peak Memory Usage per Model
+This chart shows the average peak RAM usage during inference.
+
+![Memory Usage Comparison](docs/memory_comparison.png)
+
 
 ---
 
 ## Testing
 
-All core components are unit tested.
+All major components are unit tested.
 
 Run tests locally:
 
-```bash
 pytest -v
-```
 
 ---
+
 ## Continuous Integration (CI)
 
-This repository includes a GitHub Actions workflow that:
+A GitHub Actions workflow automatically:
 
-Sets up Python 3.11
+- Sets up Python 3.11
+- Installs dependencies
+- Runs all PyTest test cases
 
-Installs dependencies
-
-Runs all tests using PyTest
-
-CI runs automatically on every push and pull request to main.
+CI executes on every push and pull request to `main`.
 
 ---
 
 ## Design Principles
 
-1.Modularity – clear separation of concerns
+- **Modularity** – clear separation of concerns
+- **Configuration-driven** – no hardcoded models or paths
+- **Fail-safe execution** – partial failures do not stop the benchmark
+- **Production mindset** – realistic metrics and reporting
+- **Reproducibility** – environment metadata captured
 
-2.Configuration-driven – no hardcoded models or paths
-
-3.Fail-safe execution – partial failures don’t stop the run
-
-4.Production mindset – realistic metrics and reporting
-
-5.Reproducibility – environment metadata captured
-
----
-
-### Benchmark Analysis
-
-A detailed interpretation of the benchmark results is provided in:
-
-📘 docs/benchmark_report.md
+Detailed rationale is available in:  
+`docs/design_decisions.md`
 
 ---
 
-### Future Enhancements
+## Benchmark Analysis
 
-Perplexity-based quality metrics
-
-Batch inference benchmarking
-
-Multi-GPU benchmarking
-
-Cloud-hosted model evaluation
-
-API endpoint benchmarking
+A detailed interpretation of the benchmark results is provided in:  
+`docs/benchmark_report.md`
 
 ---
 
-### License
+## Future Enhancements
 
-This project is released under the MIT License.
+- Perplexity-based quality metrics
+- Batch inference benchmarking
+- Multi-GPU benchmarking
+- Cloud-hosted model evaluation
+- API endpoint benchmarking
 
+---
 
+## License
+
+This project is released under the **MIT License**.
