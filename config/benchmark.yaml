@@ -1,4 +1,5 @@
 # LLM Performance Benchmark Configuration
+# (Local CPU-safe version)
 
 benchmark:
   name: "llm_performance_benchmark"
@@ -6,25 +7,13 @@ benchmark:
   seed: 42
 
 # Model definitions (Hugging Face Hub)
-# Must include at least 3 models of different sizes
+# Using ONLY small model for local CPU testing
 models:
   - id: "distilgpt2"
     name: "DistilGPT-2 (Small)"
     provider: "huggingface"
     size: "<1B"
     dtype: "float32"
-
-  - id: "mistralai/Mistral-7B-v0.1"
-    name: "Mistral 7B (Medium)"
-    provider: "huggingface"
-    size: "~7B"
-    dtype: "float16"
-
-  - id: "meta-llama/Llama-2-13b-hf"
-    name: "LLaMA 2 13B (Large)"
-    provider: "huggingface"
-    size: ">13B"
-    dtype: "float16"
 
 # Dataset configuration
 dataset:
@@ -42,7 +31,7 @@ generation:
 
 # Runtime / device configuration
 runtime:
-  device: "cpu" # cpu or cuda
+  device: "cpu"           # cpu or cuda
   use_gpu_if_available: false
   batch_size: 1
   timeout_seconds: 60
